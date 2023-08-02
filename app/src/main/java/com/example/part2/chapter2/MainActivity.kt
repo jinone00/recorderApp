@@ -50,9 +50,11 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
                 State.RELEASE -> {
                     record()
                 }
+
                 State.RECORDING -> {
                     onRecord(false)
                 }
+
                 State.PLAYING -> {
                 }
             }
@@ -62,7 +64,9 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
             when (state) {
                 State.RELEASE -> {
                     onPlay(true)
-                } else -> {
+                }
+
+                else -> {
                     // do nothing
                 }
 
@@ -73,7 +77,9 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
             when (state) {
                 State.PLAYING -> {
                     onPlay(false)
-                } else -> {
+                }
+
+                else -> {
                     // do nothing
                 }
 
@@ -83,7 +89,7 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
     }
 
     private fun onPlay(start: Boolean) {
-        if (start){
+        if (start) {
             startPlaying()
         } else {
             stopPlaying()
@@ -96,22 +102,29 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
             try {
                 setDataSource(fileName)
                 prepare()
-            } catch (e: IOException){
+            } catch (e: IOException) {
                 Log.e("APP", "media player prepare fail $e")
             }
             start()
         }
 
+        binding.waveformView.clearWave()
+        timer.start()
+
         player?.setOnCompletionListener { stopPlaying() }
 
-        binding.recordButton.isEnabled =false
+        binding.recordButton.isEnabled = false
         binding.recordButton.alpha = 0.3f
     }
+
+
 
     private fun stopPlaying() {
         state = State.RELEASE
         player?.release()
         player = null
+
+        timer.stop()
         binding.recordButton.isEnabled = true
         binding.recordButton.alpha = 1.0f
     }
@@ -165,6 +178,7 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
             start()
         }
 
+        binding.waveformView.clearData()
         timer.start()
         recorder?.maxAmplitude?.toFloat()
 
@@ -251,7 +265,19 @@ class MainActivity : AppCompatActivity(), OnTimerTickListener {
     }
 
     override fun onTick(duration: Long) {
-        binding.waveformView.addAmplitude(recorder?.maxAmplitude?.toFloat() ?: 0f)
+        val millisecond = duration % 1000
+        val second = (duration / 1000) % 60
+        val minute = (duration /1000 / 60)
+
+        binding.timerTextView.text = String.format("%02d:%02d.%02d", minute, second, millisecond / 10)
+
+        if(state == State.PLAYING){
+            binding.waveformView.replayAmplitude(duration.toInt())
+        } else if (state == State.RECORDING){
+            binding.waveformView.addAmplitude(recorder?.maxAmplitude?.toFloat() ?: 0f)
+        }
+
+
     }
 
 }
